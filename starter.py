@@ -153,8 +153,11 @@ def main():
     # params.vocab_size = len(vocab)
     # print(vocab[:10])
     # print(words.values())
-    # print(len(train))
-    
+    print(train[:200])
+    print(words['<start_bio>'])
+    print(words['<end_bio>'])
+    print(words['<unk>'])
+    # print(len(train.split(1)))
 #     if params.model == 'FFNN':
 # #          {add code to instantiate the model, train for K epochs and save model to disk}
         
