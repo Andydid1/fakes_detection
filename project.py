@@ -74,7 +74,7 @@ class LSTMnet(nn.Module):
     output, (h_n, c_n) = self.lstm(embed)
     out = self.dropout(output)
     out = self.fc(output[:,-1,:])
-    #out = self.dropout(output)
+    # out = self.dropout(output)
     out = torch.sigmoid(out)
     return out
 
@@ -532,7 +532,7 @@ def classify_LSTM(test_iter, params):
   hidden_dim = embedding_dim
   output_dim = 1
   model = LSTMnet(vocab_size, embedding_dim, hidden_dim, output_dim)
-  model.load_state_dict(torch.load("lstm_bestmodel.pt"))
+  model.load_state_dict(torch.load("lstm_bestmodel.pt", map_location=torch.device('cpu')))
   model.eval()
   true_label=torch.LongTensor()
   predicate_label=torch.LongTensor()
@@ -577,7 +577,7 @@ def main():
     parser.add_argument('-window', type=int, default=3)
     parser.add_argument('-epochs', type=int, default=50)
     parser.add_argument('-lr', type=float, default=0.002)
-    parser.add_argument('-dropout', type=int, default=0.3)
+    parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-clip', type=int, default=2.0)
     parser.add_argument('-model', type=str,default='LSTM')
     parser.add_argument('-savename', type=str,default='ffnn')
@@ -595,7 +595,7 @@ def main():
         vocab = []
         words = {}
         lookup = {}
-        [vocab,words,lookup] = read_encode_custom(["mix.train.tok"],3)
+        [vocab,words,lookup] = read_encode_custom(["mix.train.tok", "fake.train.tok", "real.train.tok"], 3)
         print("FFNN vocab size:", len(vocab))
 
         START_TOKEN = words['start_bio'][0]
@@ -712,6 +712,7 @@ def main():
         )
         TEXT.build_vocab(train_data, vectors=None, max_size=30000)
         LABEL.build_vocab(train_data)
+        params['vocab_size'] = len(TEXT.vocab)
         # vocab_head=TEXT.vocab.freqs.most_common(n=30)
         # vocab_head=pd.DataFrame(data=vocab_head, columns=["word", "frequency"])
 
