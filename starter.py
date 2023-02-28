@@ -18,6 +18,66 @@ from torchtext import data as torchdata
 import re
 import csv
 
+class FeedForwardNN(torch.nn.Module):
+    
+    def __init__(self, input_size, vocab_size, embedding_size):
+        """Construct a simple MLP discriminator"""
+        
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.embedding_size = embedding_size
+        self.input_size = input_size
+        
+        # Number of input features is 12.
+        self.embeddings = nn.Embedding(vocab_size, embedding_size)
+        self.layer_1 = nn.Linear(input_size * embedding_size, 1024) 
+        self.layer_2 = nn.Linear(1024, 512)
+        self.layer_3 = nn.Linear(512, 256)
+        self.layer_4 = nn.Linear(256, 128)
+        self.layer_5 = nn.Linear(128,64)
+        self.layer_6 = nn.Linear(64,16)
+        self.layer_out = nn.Linear(16, 1) 
+        
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+        self.dropout = nn.Dropout(p=0.3)
+        self.batchnorm1 = nn.BatchNorm1d(512)
+        self.batchnorm2 = nn.BatchNorm1d(128)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, inputs):
+        x = self.embeddings(inputs).view((-1,self.input_size * self.embedding_size))
+        x = self.tanh(self.layer_1(x))
+        x = self.tanh(self.layer_2(x))
+        x = self.batchnorm1(x)
+        x = self.tanh(self.layer_3(x))
+        x = self.tanh(self.layer_4(x))
+        x = self.batchnorm2(x)
+        x = self.dropout(x)
+        x = self.tanh(self.layer_5(x))
+        x = self.dropout(x)
+        x = self.tanh(self.layer_6(x))
+        x = self.layer_out(x)
+        return self.sigmoid(x)
+    
+class LSTMnet(nn.Module):
+  def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim):
+    super(LSTMnet, self).__init__()
+    self.hidden_dim = hidden_dim
+    self.embedding = nn.Embedding(vocab_size,embedding_dim)
+    self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+    self.fc = nn.Linear(hidden_dim, output_dim)
+    self.dropout = nn.Dropout(0.3)
+
+  def forward(self, x):
+    embed=self.embedding(x)
+    output, (h_n, c_n) = self.lstm(embed)
+    out = self.dropout(output)
+    out = self.fc(output[:,-1,:])
+    #out = self.dropout(output)
+    out = torch.sigmoid(out)
+    return out
+
 # Read from training files, update encodings
 def read_encode_custom(file_names, threshold):
     vocab = []
@@ -163,48 +223,6 @@ class FakeDetectDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
-class FeedForwardNN(torch.nn.Module):
-    
-    def __init__(self, input_size, vocab_size, embedding_size):
-        """Construct a simple MLP discriminator"""
-        
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.embedding_size = embedding_size
-        self.input_size = input_size
-        
-        # Number of input features is 12.
-        self.embeddings = nn.Embedding(vocab_size, embedding_size)
-        self.layer_1 = nn.Linear(input_size * embedding_size, 1024) 
-        self.layer_2 = nn.Linear(1024, 512)
-        self.layer_3 = nn.Linear(512, 256)
-        self.layer_4 = nn.Linear(256, 128)
-        self.layer_5 = nn.Linear(128,64)
-        self.layer_6 = nn.Linear(64,16)
-        self.layer_out = nn.Linear(16, 1) 
-        
-        self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
-        self.dropout = nn.Dropout(p=0.3)
-        self.batchnorm1 = nn.BatchNorm1d(512)
-        self.batchnorm2 = nn.BatchNorm1d(128)
-        self.sigmoid = nn.Sigmoid()
-        
-    def forward(self, inputs):
-        x = self.embeddings(inputs).view((-1,self.input_size * self.embedding_size))
-        x = self.tanh(self.layer_1(x))
-        x = self.tanh(self.layer_2(x))
-        x = self.batchnorm1(x)
-        x = self.tanh(self.layer_3(x))
-        x = self.tanh(self.layer_4(x))
-        x = self.batchnorm2(x)
-        x = self.dropout(x)
-        x = self.tanh(self.layer_5(x))
-        x = self.dropout(x)
-        x = self.tanh(self.layer_6(x))
-        x = self.layer_out(x)
-        return self.sigmoid(x)
-
 def train_FFNN(train_loader, val_loader, test_loader, params):
     batch_size = params['batch_size']
     input_size = params['pad_size']
@@ -322,24 +340,6 @@ def classify_FFNN(params, start_token, end_token, pad_token, words):
             else:
                 curr_row.append("[FAKE]")
             writer.writerow(curr_row)
-
-class LSTMnet(nn.Module):
-  def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim):
-    super(LSTMnet, self).__init__()
-    self.hidden_dim = hidden_dim
-    self.embedding = nn.Embedding(vocab_size,embedding_dim)
-    self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
-    self.fc = nn.Linear(hidden_dim, output_dim)
-    self.dropout = nn.Dropout(0.3)
-
-  def forward(self, x):
-    embed=self.embedding(x)
-    output, (h_n, c_n) = self.lstm(embed)
-    out = self.dropout(output)
-    out = self.fc(output[:,-1,:])
-    #out = self.dropout(output)
-    out = torch.sigmoid(out)
-    return out
 
 def train(model, train_loader, valid_loader, criterion, optimizer, num_epoch=50):
     train_loss_lst=[]
