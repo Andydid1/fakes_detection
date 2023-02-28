@@ -390,9 +390,9 @@ def train(model, train_loader, valid_loader, criterion, optimizer, num_epoch=50)
         print("Validation loss: {:.4f}".format(valid_loss/valid_num))
         perplexity_list_valid.append(math.exp(valid_loss/valid_num))
         print("The valid perplexity is:   {}".format(math.exp(valid_loss/valid_num)))
+        
     return model, train_loss_lst, valid_loss_lst, perplexity_list_train, perplexity_list_valid
-
-
+    
 def preprocess_data_LSTM():
    # Data Preprocessing    
   df_blind = pd.DataFrame(columns=['data', 'label'])
@@ -456,7 +456,7 @@ def preprocess_data_LSTM():
         elif line == "< end_bio >":
             data = re.sub(r"[^\w]+", " ", data)
             data = re.sub(r"[\d]+", "<NUM>", data)    
-            df_train.loc[len(df_train.index)] = [data , 1]
+            df_valid.loc[len(df_valid.index)] = [data , 1]
             data = ""
         else:
             data = data + line + " "
@@ -470,7 +470,7 @@ def preprocess_data_LSTM():
         elif line == "< end_bio >":
             data = re.sub(r"[^\w]+", " ", data)
             data = re.sub(r"[\d]+", "<NUM>", data)    
-            df_train.loc[len(df_train.index)] = [data , 0]
+            df_valid.loc[len(df_valid.index)] = [data , 0]
             data = ""
         else:
             data = data + line + " "
@@ -488,7 +488,7 @@ def preprocess_data_LSTM():
         elif line == "< end_bio >":
             data = re.sub(r"[^\w]+", " ", data)
             data = re.sub(r"[\d]+", "<NUM>", data)    
-            df_train.loc[len(df_train.index)] = [data , 1]
+            df_test.loc[len(df_test.index)] = [data , 1]
             data = ""
         else:
             data = data + line + " "
@@ -503,7 +503,7 @@ def preprocess_data_LSTM():
         elif line == "< end_bio >":
             data = re.sub(r"[^\w]+", " ", data)
             data = re.sub(r"[\d]+", "<NUM>", data)    
-            df_train.loc[len(df_train.index)] = [data , 0]
+            df_test.loc[len(df_test.index)] = [data , 0]
             data = ""
         else:
             data = data + line + " "
